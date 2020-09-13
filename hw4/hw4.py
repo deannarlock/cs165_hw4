@@ -18,6 +18,34 @@ def read_data(path):
             A list of data points, each data point is itself a list of features.
     """
 
+    data_set = []
+    data_point = []
+    
+    file = open(path,"r")
+    lines = file.readlines()
+
+    for line in lines:
+        
+        loc = line.rfind(',')
+
+        feature = ''
+        for i in range(loc):
+            char = line[i]
+            if(char != ','):
+                feature = feature + char
+            else:
+                data_point.append(float(feature))
+                feature = ''
+
+        data_point.append(float(feature))
+        data_point.append(float(line[loc + 1:-1]))
+        
+        data_set.append(data_point)
+        data_point = []
+    
+    return data_set
+    
+    
 def pca(data_set, n_components):
     """
     Perform principle component analysis and dimentinality reduction.
@@ -35,6 +63,65 @@ def pca(data_set, n_components):
             Principal axes in feature space, representing the directions of maximum variance in the data. 
             They should be sorted by the amount of variance explained by each of the components.
     """
+    
+    #zero center the data
+    mean = []
+    for i in range(len(data_set[0])):
+        mean.append(0.0)
+        
+    for point in data_set:
+        for i in range(len(point)):
+            mean[i] = mean[i] + point[i];
+    
+    amt = len(data_set)
+    for i in range(len(mean)):
+        mean[i] = mean[i] / amt
+        
+    
+    new_data = []
+    for point in data_set:
+        new_point = []
+        for i in range(len(point)):
+            new_point.append(point[i] - mean[i])
+        new_data.append(new_point)
+        
+    
+    #calculate covariance matrix
+    transposed = []
+    for feature in new_data[0]:
+        blank = []
+        blank.append(feature)
+        transposed.append(blank)
+    
+    for point in new_data[1:]:
+        for i in range(len(point)):
+            transposed[i].append(point[i])
+    
+    
+    S = np.cov(transposed, bias=True)
+    
+    
+    #find eigenvectors and eigenvalues of covariance matrix
+    V, U = np.linalg.eig(S)
+    
+    
+    #find n PC's
+    sorted_v = []
+    for i in range(len(V)):
+        sorted_v.append(V[i])
+        
+    sorted_v.sort(reverse=True)
+    list_v = list(V)
+    
+    
+    PC = []
+    for i in range(n_components):
+        loc = list_v.index(sorted_v[i])
+        PC.append(list(U[:,loc]))
+        
+    
+    return np.transpose(PC)
+    
 
 def dim_reduction(data_set, components):
     """
@@ -53,8 +140,6 @@ def dim_reduction(data_set, components):
         transformed: n_samples x n_components
             Return the transformed values.
     """
-
-
-# You may put code here to test your program. They will not be run during grading.
-if __name__ == '__main__':
-    pass
+    
+    return np.dot(data_set, components)
+    
